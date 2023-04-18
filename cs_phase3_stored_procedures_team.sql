@@ -31,7 +31,7 @@ create procedure add_airplane (in ip_airlineID varchar(50), in ip_tail_num varch
     in ip_plane_type varchar(100), in ip_skids boolean, in ip_propellers integer,
     in ip_jet_engines integer)
 sp_main: begin
-insert into airplane(airlineID, tail_num, seat_capacity, speed, locationID, plane_type, skids, propellers, jet_engines) values (ip_airlineID, ip_tail_num, ip_seat_capacity, ip_speed, ip_locationID, ip_plane_type, ip_skids, ip_propellers, ip_jet_engines)
+insert into airplane(airlineID, tail_num, seat_capacity, speed, locationID, plane_type, skids, propellers, jet_engines) values (ip_airlineID, ip_tail_num, ip_seat_capacity, ip_speed, ip_locationID, ip_plane_type, ip_skids, ip_propellers, ip_jet_engines);
 end //
 delimiter ;
 
@@ -47,7 +47,7 @@ delimiter //
 create procedure add_airport (in ip_airportID char(3), in ip_airport_name varchar(200),
     in ip_city varchar(100), in ip_state char(2), in ip_locationID varchar(50))
 sp_main: begin
-insert into airport(airportID, airport_name, city, state, locationID) values (ip_airportID, ip_airport_name, ip_city, ip_state, ip_locationID)
+insert into airport(airportID, airport_name, city, state, locationID) values (ip_airportID, ip_airport_name, ip_city, ip_state, ip_locationID);
 end //
 delimiter ;
 
@@ -70,7 +70,7 @@ create procedure add_person (in ip_personID varchar(50), in ip_first_name varcha
     in ip_experience integer, in ip_flying_airline varchar(50), in ip_flying_tail varchar(50),
     in ip_miles integer)
 sp_main: begin
-insert into person(personID, first_name, last_name, locationID, taxID, experience, flying_airline, flying_tail, miles) values (ip_personID, ip_first_name, ip_last_name, ip_locationID, ip_taxID, ip_experience, ip_flying_airline, ip_flying_tail, ip_miles)
+insert into person(personID, first_name, last_name, locationID, taxID, experience, flying_airline, flying_tail, miles) values (ip_personID, ip_first_name, ip_last_name, ip_locationID, ip_taxID, ip_experience, ip_flying_airline, ip_flying_tail, ip_miles);
 end //
 delimiter ;
 
@@ -85,7 +85,7 @@ create procedure grant_pilot_license (in ip_personID varchar(50), in ip_license 
 sp_main: begin
 UPDATE pilot_licence
 SET
-license = ip_license WHERE personID = ip_personID
+license = ip_license WHERE personID = ip_personID;
 end //
 delimiter ;
 
@@ -103,7 +103,7 @@ create procedure offer_flight (in ip_flightID varchar(50), in ip_routeID varchar
     in ip_support_airline varchar(50), in ip_support_tail varchar(50), in ip_progress integer,
     in ip_airplane_status varchar(100), in ip_next_time time)
 sp_main: begin
-insert INTO flight(flightID, routeID, support_airline, support_tail, progress, airplane_status, next_time) values (ip_flightID, ip_routeID, ip_support_airline, ip_support_tail, ip_progress, ip_airplane_status, ip_next_time)
+insert INTO flight(flightID, routeID, support_airline, support_tail, progress, airplane_status, next_time) values (ip_flightID, ip_routeID, ip_support_airline, ip_support_tail, ip_progress, ip_airplane_status, ip_next_time);
 end //
 delimiter ;
 
@@ -123,7 +123,8 @@ create procedure purchase_ticket_and_seat (in ip_ticketID varchar(50), in ip_cos
 	in ip_carrier varchar(50), in ip_customer varchar(50), in ip_deplane_at char(3),
     in ip_seat_number varchar(50))
 sp_main: begin
-
+insert into ticket(ticketID, cost, carrier, customer, deplane_at) values (ip_ticketID, ip_cost, ip_carrier, ip_customer, ip_deplane_at);
+insert into ticket_seats(ticketID, seat_number) values (ip_ticketID, ip_seat_number);
 end //
 delimiter ;
 
