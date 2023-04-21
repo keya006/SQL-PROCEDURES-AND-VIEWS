@@ -402,7 +402,8 @@ inner join airplane on flightID = airlineID
 inner join location on airlineID = locationID
 where airplane_status = 'in_flight';
    
-
+end //
+delimiter ;
 -- [20] flights_on_the_ground()
 -- -----------------------------------------------------------------------------
 /* This view describes where flights that are currently on the ground are located. */
@@ -413,7 +414,8 @@ select departure as departing_from, count(flightID) as num_flight, flightID as f
 join airplane on flightID = tail_num
 join location on tail_num = locationID
 where flight_status = 'on_ground'
-
+end //
+delimiter ;
 -- [21] people_in_the_air()
 -- -----------------------------------------------------------------------------
 /* This view describes where people who are currently airborne are located. */
@@ -424,7 +426,8 @@ create or replace view people_in_the_air (departing_from, arriving_at, num_airpl
 select departure as departing_from, arrival as arriving_at, count(airplaneID) as num_airplane, count(licence) as num_pilots, count(miles) as num_passengers, (count(miles) + count(license)) as joint_pilots_passengers, personID as person_list from flight join airplane on flightID = airplaneID 
 join person on tail_num = personID 
 where flight_status = 'in_flight'
-
+end //
+delimiter ;
 -- [22] people_on_the_ground()
 -- -----------------------------------------------------------------------------
 /* This view describes where people who are currently on the ground are located. */
@@ -433,7 +436,8 @@ create or replace view people_on_the_ground (departing_from, airport, airport_na
 	city, state, num_pilots, num_passengers, joint_pilots_passengers, person_list) as
 select departure as departure_from, airportID as airport, airport_name, city, state, count(licence) as num_pilots, count(miles) as num_passengers, (count(miles) + count(license)) as joint_pilots_passengers, personID as person_list from flight join airport on flightID = airportID
 join person on airportID = personID where flight_status = 'on_ground';
-
+end //
+delimiter ;
 -- [23] route_summary()
 -- -----------------------------------------------------------------------------
 /* This view describes how the routes are being utilized by different flights. */
@@ -441,7 +445,8 @@ join person on airportID = personID where flight_status = 'on_ground';
 create or replace view route_summary (route, num_legs, leg_sequence, route_length,
 	num_flights, flight_list, airport_sequence) as
 select routeID as route, count(legID) as num_legs, sequence as leg_sequence, distance as route_length, count(flightID) as num_flight, flightID as flight_list, airportID as airport_sequence) from route_path join leg on routeID = legID JOIN FLIGHT ON routeID = flightID join airport on flightID = airportID; 
-
+end //
+delimiter ;
 -- [24] alternative_airports()
 -- -----------------------------------------------------------------------------
 /* This view displays airports that share the same city and state. */
@@ -449,7 +454,8 @@ select routeID as route, count(legID) as num_legs, sequence as leg_sequence, dis
 create or replace view alternative_airports (city, state, num_airports,
 	airport_code_list, airport_name_list) as
 select city, state, count(airportID as num_airports, airportID as airport_code_list, airport_name as airport_name_list from airport group by city, state;
-
+end //
+delimiter ;
 -- [25] simulation_cycle()
 -- -----------------------------------------------------------------------------
 /* This stored procedure executes the next step in the simulation cycle.  The flight
@@ -474,6 +480,24 @@ drop procedure if exists simulation_cycle;
 delimiter //
 create procedure simulation_cycle ()
 sp_main: begin
+SELECT flightID, airplane_status, next_time, routeID, distance, speed, 
+FROM flight
+inner join route on flightID = routeID
+INNER JOIN leg on flightID = legID
+INNER JOIN airplane on flightID = tail_num
+WHERE next_time = (SELECT MIN(next_time) from flight where airplane_status = 'on_ground' OR (airplane_status = 'in_flight' AND type = 'landing'))
+ORDER BY airplane_type ASC, flightID ASC
+LIMIT 1;
 
-end //
+IF (flightID IS NOT NULL) THEN
+	IF (airplane_status = 'on_ground' and flight_type = 'takeoff') THEN
+		UPDATE flight SET airplane_status = 'in_flight'
+	ELSEIF (airplane_status = 'on_ground' AND flight_type = 'landing') THEN
+	       UPDATE flight SET status = 'landed', next_time = ADDTIME(next_time, '01:00:00')
+        ELSEIF (airplane_status = 'in_flight' AND flight_type = 'landing') THEN
+	       UPDATE flight SET status = 'landed', next_time = ADDTIME(next_time, '01:00:00')
+        ELSEIF (airplane_status = 'in_flight' AND flight_type = 'takeoff') THEN
+        END IF;
+END IF;
+END //
 delimiter ;
