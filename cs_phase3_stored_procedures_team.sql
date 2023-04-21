@@ -31,7 +31,17 @@ create procedure add_airplane (in ip_airlineID varchar(50), in ip_tail_num varch
     in ip_plane_type varchar(100), in ip_skids boolean, in ip_propellers integer,
     in ip_jet_engines integer)
 sp_main: begin
-insert into airplane(airlineID, tail_num, seat_capacity, speed, locationID, plane_type, skids, propellers, jet_engines) values (ip_airlineID, ip_tail_num, ip_seat_capacity, ip_speed, ip_locationID, ip_plane_type, ip_skids, ip_propellers, ip_jet_engines);
+if ip_airlineID not in (select airlineID from airline) or ip_tail_num in (select tail_num from airplane where airlineID = ip_airlineID) then leave sp_main; end if;
+
+if ip_speed <= 0 or ip_seat_capacity <= 0 then leave sp_main; end if;
+
+if ip_plane_type like 'jet' and ip_jet_engines <= 0 then leave sp_main; end if;
+
+if ip_plane_type like 'prop' and ip_propellers <= 0 then leave sp_main; end if;
+
+if ip_skids < 0 then leave sp_main; end if;
+
+insert into airplane (airlineID, tail_num, seat_capacity, speed, locationID, plane_type, skids, propellers, jet_engines) values (ip_airlineID, ip_tail_num, ip_seat_capacity, ip_speed, ip_locationID, ip_plane_type, ip_skids, ip_propellers, ip_jet_engines);
 end //
 delimiter ;
 
@@ -47,7 +57,13 @@ delimiter //
 create procedure add_airport (in ip_airportID char(3), in ip_airport_name varchar(200),
     in ip_city varchar(100), in ip_state char(2), in ip_locationID varchar(50))
 sp_main: begin
-insert into airport(airportID, airport_name, city, state, locationID) values (ip_airportID, ip_airport_name, ip_city, ip_state, ip_locationID);
+if ip_airportID in (select airportID from airport) or ip_locationID in (select locationID from location)
+	THEN leave sp_main; end if;
+
+if ip_city = null or ip_state = null THEN
+  leave sp_main; end if;
+
+insert into airport (airportID, airport_name, city, state, locationID) values (ip_airportID, ip_airport_name, ip_city, ip_state, ip_locationID);
 end //
 delimiter ;
 
@@ -70,7 +86,9 @@ create procedure add_person (in ip_personID varchar(50), in ip_first_name varcha
     in ip_experience integer, in ip_flying_airline varchar(50), in ip_flying_tail varchar(50),
     in ip_miles integer)
 sp_main: begin
-insert into person(personID, first_name, last_name, locationID, taxID, experience, flying_airline, flying_tail, miles) values (ip_personID, ip_first_name, ip_last_name, ip_locationID, ip_taxID, ip_experience, ip_flying_airline, ip_flying_tail, ip_miles);
+if ip_personID IN (SELECT personID from person) then leave sp_main; end if;
+
+insert into person (personID, first_name, last_name, locationID, taxID, experience, flying_airline, flying_tail, miles) values (ip_personID, ip_first_name, ip_last_name, ip_locationID, ip_taxID, ip_experience, ip_flying_airline, ip_flying_tail, ip_miles);
 end //
 delimiter ;
 
@@ -83,6 +101,8 @@ drop procedure if exists grant_pilot_license;
 delimiter //
 create procedure grant_pilot_license (in ip_personID varchar(50), in ip_license varchar(100))
 sp_main: begin
+if ip_personID not in (select personID from pilot) then leave sp_main; end if;
+ 	
 UPDATE pilot_licence
 SET
 license = ip_license WHERE personID = ip_personID;
@@ -103,7 +123,9 @@ create procedure offer_flight (in ip_flightID varchar(50), in ip_routeID varchar
     in ip_support_airline varchar(50), in ip_support_tail varchar(50), in ip_progress integer,
     in ip_airplane_status varchar(100), in ip_next_time time)
 sp_main: begin
-insert INTO flight(flightID, routeID, support_airline, support_tail, progress, airplane_status, next_time) values (ip_flightID, ip_routeID, ip_support_airline, ip_support_tail, ip_progress, ip_airplane_status, ip_next_time);
+if ip_routeID not in (select routeID from route) then
+        leave sp_main; end if;
+insert INTO flight (flightID, routeID, support_airline, support_tail, progress, airplane_status, next_time) values (ip_flightID, ip_routeID, ip_support_airline, ip_support_tail, ip_progress, ip_airplane_status, ip_next_time);
 end //
 delimiter ;
 
@@ -123,7 +145,10 @@ create procedure purchase_ticket_and_seat (in ip_ticketID varchar(50), in ip_cos
 	in ip_carrier varchar(50), in ip_customer varchar(50), in ip_deplane_at char(3),
     in ip_seat_number varchar(50))
 sp_main: begin
-insert into ticket(ticketID, cost, carrier, customer, deplane_at) values (ip_ticketID, ip_cost, ip_carrier, ip_customer, ip_deplane_at);
+if ip_customer not i (select personID from person) then
+	leave sp_main; end if;
+
+insert into ticket (ticketID, cost, carrier, customer, deplane_at) values (ip_ticketID, ip_cost, ip_carrier, ip_customer, ip_deplane_at);
 insert into ticket_seats(ticketID, seat_number) values (ip_ticketID, ip_seat_number);
 end //
 delimiter ;
@@ -141,7 +166,10 @@ delimiter //
 create procedure add_update_leg (in ip_legID varchar(50), in ip_distance integer,
     in ip_departure char(3), in ip_arrival char(3))
 sp_main: begin
+if ip_departure in (select departure from leg) or ip_arrival in (select arrival from leg) then
+	leave sp_main; end if;
 
+insert into leg (legID, distance, departure, arrival) values (ip_legID, ip_distance, ip_departure, ip_arrival);
 end //
 delimiter ;
 
@@ -155,7 +183,12 @@ drop procedure if exists start_route;
 delimiter //
 create procedure start_route (in ip_routeID varchar(50), in ip_legID varchar(50))
 sp_main: begin
+if ip_legID not in (select legID from leg) then
+	leave sp_main; end if;
 
+insert into route (routeID) values (ip_routeID);
+
+insert into route_path (routeID, legID) values (ip_routeID, ip_legID);
 end //
 delimiter ;
 
@@ -170,7 +203,10 @@ drop procedure if exists extend_route;
 delimiter //
 create procedure extend_route (in ip_routeID varchar(50), in ip_legID varchar(50))
 sp_main: begin
-
+if ip_routeID not in (select routeID from route) then
+	leave sp_main; end if;
+update route_path
+set legID where ip_leg = legID;
 end //
 delimiter ;
 
@@ -186,7 +222,21 @@ drop procedure if exists flight_landing;
 delimiter //
 create procedure flight_landing (in ip_flightID varchar(50))
 sp_main: begin
+if ip_flightID not in (select flightID from flight) then leave sp_main; end if;
 
+if flight_status != 'in_flight' then leave sp_main; end if;
+
+update flight
+set select addtime(next_time, "01.00.00")
+where ip_flightID = flightID;
+
+update pilot
+set experience + 1
+where (select pilotID from pilot inner join tail_num on pilotID = tail_num);
+
+update passenger
+set miles + (select distance from leg)
+where personID = customerID;
 end //
 delimiter ;
 
@@ -203,7 +253,16 @@ drop procedure if exists flight_takeoff;
 delimiter //
 create procedure flight_takeoff (in ip_flightID varchar(50))
 sp_main: begin
-
+IF (plane_type = 'prop' AND pilot_count < 1) OR (plane_type = 'jet' AND pilot_count < 2) THEN
+    -- delay flight for 30 minutes if there aren't enough pilots
+    UPDATE flights
+    SET status = 'Delayed', departure_time = ADDTIME(departure, '00:30:00')
+    WHERE ip_flightID = flight_id;
+  ELSE
+    -- update flight status and departure time
+    UPDATE flights
+    SET status = 'In-Progress', departure_time = ADDTIME(departure, SEC_TO_TIME(time_in_minutes*60))
+    WHERE ip_flightID = flight_id;
 end //
 delimiter ;
 
@@ -217,6 +276,11 @@ drop procedure if exists passengers_board;
 delimiter //
 create procedure passengers_board (in ip_flightID varchar(50))
 sp_main: begin
+if personlocationID not in (select airportlocationID from location) then leave sp_main; end if;
+if ip_ticketID not in (select ticketID from ticket) then leave sp_main; end if;
+insert into flight(flightID) values (ip_flightID);
+update passenger
+set locationID = locationID WHERE airportID = flightID;
 
 end //
 delimiter ;
@@ -231,7 +295,10 @@ drop procedure if exists passengers_disembark;
 delimiter //
 create procedure passengers_disembark (in ip_flightID varchar(50))
 sp_main: begin
-
+if personID not in (select personID from passenger) then
+	leave sp_main; end if;
+if personlocationID != airportlocationID then leave sp_main; end if;
+insert into flight (flightID) values (ip_flightID);	
 end //
 delimiter ;
 
@@ -247,7 +314,13 @@ drop procedure if exists assign_pilot;
 delimiter //
 create procedure assign_pilot (in ip_flightID varchar(50), ip_personID varchar(50))
 sp_main: begin
-
+select locationID from location inner join personID from pilot into pilot.location;
+if personID in (select personID from pilot)
+	then
+	insert into flight (flightID) values (ip_flightID);
+	insert into pilot (personID) values (ip_personID);
+	select concat('pilot', ip_personID, 'assigned to flight' flightID) AS MESSAGE;
+end if;
 end //
 delimiter ;
 
@@ -260,7 +333,9 @@ drop procedure if exists recycle_crew;
 delimiter //
 create procedure recycle_crew (in ip_flightID varchar(50))
 sp_main: begin
-
+if flight_status = 'in_flight' in (select flight_status from flight) then
+	leave sp_main; end if;
+insert into flight (flightID) values (ip_flightID);	
 end //
 delimiter ;
 
@@ -274,7 +349,9 @@ drop procedure if exists retire_flight;
 delimiter //
 create procedure retire_flight (in ip_flightID varchar(50))
 sp_main: begin
-
+if ip_flightID in (SELECT airplane_status FROM flight where airplane_status = 'in_flight')
+	then sp_main; end if;
+delete from flight where flightID = ip_flightID;	
 end //
 delimiter ;
 
@@ -291,7 +368,7 @@ drop procedure if exists remove_passenger_role;
 delimiter //
 create procedure remove_passenger_role (in ip_personID varchar(50))
 sp_main: begin
-
+delete from passenger where ip_personID = personID;
 end //
 delimiter ;
 
@@ -308,7 +385,10 @@ drop procedure if exists remove_pilot_role;
 delimiter //
 create procedure remove_pilot_role (in ip_personID varchar(50))
 sp_main: begin
+if ip_personID in (select personID from passenger) and ip_personid in (select personID from pilot)
+	then leave sp_main; end if;
 
+delete from pilot where ip_pilotID = personID;	
 end //
 delimiter ;
 
@@ -316,9 +396,12 @@ delimiter ;
 -- -----------------------------------------------------------------------------
 /* This view describes where flights that are currently airborne are located. */
 -- -----------------------------------------------------------------------------
-create or replace view flights_in_the_air (departing_from, arriving_at, num_flights,
-	flight_list, earliest_arrival, latest_arrival, airplane_list) as
-select null, null, 0, null, null, null, null;
+create or replace view flights_in_the_air AS
+SELECT departure as departing_from, arrival as arriving_at, count(flightID) as num_flights, flightID as flight_list, locationID as airplane_list from flight 
+inner join airplane on flightID = airlineID
+inner join location on airlineID = locationID
+where airplane_status = 'in_flight';
+   
 
 -- [20] flights_on_the_ground()
 -- -----------------------------------------------------------------------------
@@ -326,7 +409,10 @@ select null, null, 0, null, null, null, null;
 -- -----------------------------------------------------------------------------
 create or replace view flights_on_the_ground (departing_from, num_flights,
 	flight_list, earliest_arrival, latest_arrival, airplane_list) as 
-select null, 0, null, null, null, null;
+select departure as departing_from, count(flightID) as num_flight, flightID as flight_list, next_time as earliest_arrival, next_time as latest_arrival, locationID as airplane_list from flight
+join airplane on flightID = tail_num
+join location on tail_num = locationID
+where flight_status = 'on_ground'
 
 -- [21] people_in_the_air()
 -- -----------------------------------------------------------------------------
@@ -335,7 +421,9 @@ select null, 0, null, null, null, null;
 create or replace view people_in_the_air (departing_from, arriving_at, num_airplanes,
 	airplane_list, flight_list, earliest_arrival, latest_arrival, num_pilots,
 	num_passengers, joint_pilots_passengers, person_list) as
-select null, null, 0, null, null, null, null, 0, 0, null, null;
+select departure as departing_from, arrival as arriving_at, count(airplaneID) as num_airplane, count(licence) as num_pilots, count(miles) as num_passengers, (count(miles) + count(license)) as joint_pilots_passengers, personID as person_list from flight join airplane on flightID = airplaneID 
+join person on tail_num = personID 
+where flight_status = 'in_flight'
 
 -- [22] people_on_the_ground()
 -- -----------------------------------------------------------------------------
@@ -343,7 +431,8 @@ select null, null, 0, null, null, null, null, 0, 0, null, null;
 -- -----------------------------------------------------------------------------
 create or replace view people_on_the_ground (departing_from, airport, airport_name,
 	city, state, num_pilots, num_passengers, joint_pilots_passengers, person_list) as
-select null, null, null, null, null, 0, 0, null, null;
+select departure as departure_from, airportID as airport, airport_name, city, state, count(licence) as num_pilots, count(miles) as num_passengers, (count(miles) + count(license)) as joint_pilots_passengers, personID as person_list from flight join airport on flightID = airportID
+join person on airportID = personID where flight_status = 'on_ground';
 
 -- [23] route_summary()
 -- -----------------------------------------------------------------------------
@@ -351,7 +440,7 @@ select null, null, null, null, null, 0, 0, null, null;
 -- -----------------------------------------------------------------------------
 create or replace view route_summary (route, num_legs, leg_sequence, route_length,
 	num_flights, flight_list, airport_sequence) as
-select null, 0, null, 0, 0, null, null;
+select routeID as route, count(legID) as num_legs, sequence as leg_sequence, distance as route_length, count(flightID) as num_flight, flightID as flight_list, airportID as airport_sequence) from route_path join leg on routeID = legID JOIN FLIGHT ON routeID = flightID join airport on flightID = airportID; 
 
 -- [24] alternative_airports()
 -- -----------------------------------------------------------------------------
@@ -359,7 +448,7 @@ select null, 0, null, 0, 0, null, null;
 -- -----------------------------------------------------------------------------
 create or replace view alternative_airports (city, state, num_airports,
 	airport_code_list, airport_name_list) as
-select null, null, 0, null, null;
+select city, state, count(airportID as num_airports, airportID as airport_code_list, airport_name as airport_name_list from airport group by city, state;
 
 -- [25] simulation_cycle()
 -- -----------------------------------------------------------------------------
