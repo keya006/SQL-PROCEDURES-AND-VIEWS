@@ -222,9 +222,7 @@ sp_main: begin
     set previous_sequence = (select max(sequence) from route_path where routeID = ip_routeID group by routeID);
     
    -- Finding the arrival airport of the last leg of a route path
-    set previous_arrival = (select arrival from leg where legID = 
-								(select legID from (select * from route_path where routeID = ip_routeID) as leg where sequence = previous_sequence)
-							);
+    set previous_arrival = (select arrival from leg where legID = (seliect legID from (select * from route_path where routeID = ip_routeID) as leg where sequence = previous_sequence));
     
     -- Checking for sequential order
     if departure not like previous_arrival then leave sp_main; end if;
