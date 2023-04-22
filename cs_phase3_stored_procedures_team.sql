@@ -215,7 +215,7 @@ sp_main: begin
     declare previous_arrival char(3);
     declare previous_sequence int;
 
-    --Finding departure airport
+    -- Finding departure airport
     set departure = (select departure from leg where legID = ip_legID);
     
     -- Finding previous sequence number
@@ -243,20 +243,20 @@ drop procedure if exists flight_landing;
 delimiter //
 create procedure flight_landing (in ip_flightID varchar(50))
 sp_main: begin
---Declaring variables
+-- Declaring variables
     declare ip_legID varchar(50);
     declare ip_distance int;
     declare ip_airline varchar(50);
     declare ip_tail_num varchar(50);
     declare ip_locationID varchar(50);
     
-    --Changing state of flight
+    -- Changing state of flight
     update flight set airplane_status = 'on_ground', next_time = addtime(next_time, '01:00:00') where flightID = ip_flightID;
     
     -- leg traversed
     set ip_legID = (select legID from route_path where (routeID, sequence) = (select routeID, progress from flight where flightID = ip_flightID));
     
-    --distance traveled on the leg
+    -- distance traveled on the leg
     set ip_distance = (select distance from leg where legID = ip_legID);
     
     set ip_airline = (select support_airline from flight where flightID = ip_flightID);
@@ -267,7 +267,7 @@ sp_main: begin
     -- Increased experience update for pilot
 	update pilot set experience = experience + 1 where flying_airline = ip_airline and flying_tail = ip_tail_num;
     
-    --update passengers flyier miles
+    -- update passengers flyier miles
     update passenger set miles = miles + ip_distance where personID in (select personID from person where locationID = ip_locationID);
 end //
 delimiter ;
@@ -300,7 +300,7 @@ declare ip_airline varchar(50);
     -- Finding the number of pilots
     set num_pilots = (select count(*) from pilot where flying_airline = ip_airline and flying_tail = ip_tail_num group by flying_airline, flying_tail);
     
-    --check pilot shortage in prop
+    -- check pilot shortage in prop
     if (select plane_type from airplane where airlineID = ip_airline and tail_num = ip_tail_num) like 'prop' and num_pilots < 1 then
     update flight set next_time = addtime(next_time, '00:30:00') where flightID = ip_flightID;
     leave sp_main;
